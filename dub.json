@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"HuskyNator"
+	],
+	"copyright": "Copyright © 2024, HuskyNator",
+	"description": "A Dlang Linear Algebra / Math Library",
+	"license": "proprietary",
+	"name": "vdmath"
+}

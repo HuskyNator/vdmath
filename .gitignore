@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/vdmath
+vdmath.so
+vdmath.dylib
+vdmath.dll
+vdmath.a
+vdmath.lib
+vdmath-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
