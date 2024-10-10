@@ -9,7 +9,8 @@ import std.traits : isCallable, isFloatingPoint, ReturnType;
 alias Vec(uint size = 3, Type = float) = Mat!(size, 1, Type);
 alias Mat(uint dimension = 3, Type = float) = Mat!(dimension, dimension, Type);
 
-struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 && column_count > 0) {
+struct Mat(uint row_count, uint column_count, Type = float)
+		if (row_count > 0 && column_count > 0) {
 	enum ulong size = row_count * column_count; // #elements, not #bytes!
 	enum bool isVec = (column_count == 1);
 	enum bool isMat = !isVec;
@@ -68,7 +69,9 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		Vec!3 v1 = Vec!3(2.0f);
 		assert(v1.vec == [2.0f, 2.0f, 2.0f]);
 		Mat!3 m1 = Mat!3(2.0f);
-		assert(m1.mat == [[2.0f, 0.0f, 0.0f], [0.0f, 2.0f, 0.0f], [0.0f, 0.0f, 2.0f]]);
+		assert(m1.mat == [
+				[2.0f, 0.0f, 0.0f], [0.0f, 2.0f, 0.0f], [0.0f, 0.0f, 2.0f]
+			]);
 
 		Vec!3 v2 = Vec!3(1.0f, 2.0f, 3.0f);
 		assert(v2.vec == [1.0f, 2.0f, 3.0f]);
@@ -80,6 +83,18 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		Mat!2 m3 = Mat!2(vals4M);
 		assert(m3.vec == vals4V);
 		assert(m3.mat == vals4M);
+	}
+
+	static if (isVec)
+		this(uint L, uint R)(Type[L] left, Type[R] right...) if (L + R == size) {
+			this.vec = left ~ right;
+		}
+
+	unittest {
+		Vec!2 a = Vec!2(1, 2);
+		Vec!3 b = Vec!3(3, 4, 5);
+		Vec!5 c = Vec!5(a, b);
+		assert(c == [1, 2, 3, 4, 5]);
 	}
 
 	void setCol(uint k, Vec!(row_count, Type) col) {
@@ -201,7 +216,9 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 			Mat!3 i2 = m2.inverse().mult(m2);
 			assert(i2.almostEquals(identity3));
 
-			Mat!4 m3 = Mat!4([1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16]); // Determinant 512
+			Mat!4 m3 = Mat!4([
+				1, -2, 3, 4, 5, 6, 7, -8, 9, 10, 11, 12, 13, 14, 15, 16
+			]); // Determinant 512
 			Mat!4 i3 = m3.inverse().mult(m3);
 			assert(i3.almostEquals(identity4));
 		}
@@ -326,7 +343,8 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		}
 	}
 
-	auto mult(T)(const T[column_count] right) const if (is(ResultType!(Type, "*", T))) {
+	auto mult(T)(const T[column_count] right) const
+	if (is(ResultType!(Type, "*", T))) {
 		return mult!(T, 1)(cast(T[1][column_count]) right);
 	}
 
@@ -419,11 +437,7 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		assert(a.max() == 2);
 	}
 
-	// TODO: re-evaluate "dual-context" deprecation
-	void each(alias fun)() const if (isCallable!fun && __traits(compiles, fun(Type.init))) {
-		foreach (i; 0 .. size)
-			fun(this.vec[i]);
-	}
+	// OpApply provided by alias this.
 
 	unittest {
 		int sum = 0;
@@ -432,13 +446,15 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		}
 
 		Vec!3 v1 = Vec!3(1, 2, 3);
-		v1.each!count();
+		foreach (v; v1)
+			count(v);
 		int correct = 6;
 		assert(sum == correct);
 	}
 
 	// TODO: re-evaluate "dual-context" deprecation
-	auto map(alias fun)() const if (isCallable!fun && __traits(compiles, fun(Type.init))) {
+	auto map(alias fun)() const
+	if (isCallable!fun && __traits(compiles, fun(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!fun) result;
 		foreach (i; 0 .. size)
 			result.vec[i] = fun(this.vec[i]);
@@ -458,8 +474,8 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		assert(answer == correct);
 	}
 
-	pure nothrow @nogc auto opBinary(string op, R)(const R right) const 
-			if (is(ResultType!(Type, op, R))) {
+	pure nothrow @nogc auto opBinary(string op, R)(const R right) const
+	if (is(ResultType!(Type, op, R))) {
 		alias ResT = ResultType!(Type, op, R);
 		Mat!(row_count, column_count, ResT) result;
 		mixin("result.vec[] = this.vec[] " ~ op ~ " right;");
@@ -474,7 +490,7 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 	}
 
 	static if (isVec) {
-		pure nothrow @nogc auto opBinary(string op, RT)(const RT[size] right) const 
+		pure nothrow @nogc auto opBinary(string op, RT)(const RT[size] right) const
 				if (!isList!(RT) && is(ResultType!(Type, op, RT))) { // WARNING: why cant size be used directly?
 			alias ResT = ResultType!(Type, op, RT);
 			Mat!(row_count, column_count, ResT) result;
@@ -494,8 +510,8 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		}
 	} else {
 		pure nothrow @nogc auto opBinary(string op, R:
-			RT[column_count][row_count], RT)(const R right) const 
-				if (is(ResultType!(Type, op, RT)) && !isList!(RT)) {
+			RT[column_count][row_count], RT)(const R right) const
+		if (is(ResultType!(Type, op, RT)) && !isList!(RT)) {
 			alias ResT = ResultType!(Type, op, RT);
 			Mat!(row_count, column_count, ResT) result;
 			foreach (i; 0 .. row_count)
@@ -600,8 +616,8 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 	}
 
 	static if (isVec) {
-		bool almostEquals(RT)(const RT[size] right, double delta = 1e-5) const 
-				if (__traits(compiles, abs(Type.init - RT.init))) {
+		bool almostEquals(RT)(const RT[size] right, double delta = 1e-5) const
+		if (__traits(compiles, abs(Type.init - RT.init))) {
 			alias SumType = ResultType!(Type, "-", RT);
 			SumType diff = 0;
 			foreach (i; 0 .. size)
@@ -616,7 +632,7 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 			assert(!v1.almostEquals(v2, 1.0f));
 		}
 	} else {
-		bool almostEquals(RT)(const RT[column_count][row_count] right, double delta = 1e-5) const 
+		bool almostEquals(RT)(const RT[column_count][row_count] right, double delta = 1e-5) const
 				if (__traits(compiles, abs(Type.init - RT.init))) {
 			return Vec!(size, Type)(this.vec).almostEquals(cast(RT[size]) right, delta);
 		}
@@ -630,7 +646,7 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 	}
 
 	static if (isVec) {
-		void assertAlmostEquals(RT)(const RT[size] right, double delta = 1e-5) const 
+		void assertAlmostEquals(RT)(const RT[size] right, double delta = 1e-5) const
 				if (__traits(compiles, this.almostEquals(right, delta))) {
 			alias SumType = ResultType!(Type, "-", RT);
 			SumType diff = 0;
@@ -832,7 +848,9 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 		}
 		double R = Vec!2([direction.x, direction.y]).length!double();
 		// [x,y,z] -> [atan(z/sqrt(x²+y²)),0,-teken(x)*acos(y/sqrt(x²+y²))]
-		return Vec!3([atan(direction.z / R), 0, -signbit(direction.x) * acos(direction.y / R)]);
+		return Vec!3([
+			atan(direction.z / R), 0, -signbit(direction.x) * acos(direction.y / R)
+		]);
 	}
 
 	// TODO: add test
@@ -853,7 +871,7 @@ struct Mat(uint row_count, uint column_count, Type = float) if (row_count > 0 &&
 unittest {
 	import std.meta : AliasSeq;
 
-	static foreach (i; 1 .. 5) {
+	static foreach (i; 1 .. 10) {
 		static foreach (type; AliasSeq!(bool, int, float, double, string)) {
 			mixin("Vec!(" ~ i.stringof ~ ',' ~ type.stringof ~ ") v" ~ i.stringof ~ type.stringof ~ ';');
 			mixin("Mat!(" ~ i.stringof ~ ',' ~ type.stringof ~ ") m" ~ i.stringof ~ type.stringof ~ ';');
