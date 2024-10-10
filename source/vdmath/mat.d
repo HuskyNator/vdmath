@@ -6,10 +6,10 @@ import std.exception : enforce;
 import std.math : abs, cos, sin, sqrt;
 import std.traits : isCallable, isFloatingPoint, ReturnType;
 
-alias Vec(uint size = 3, Type = float) = Mat!(size, 1, Type);
-alias Mat(uint dimension = 3, Type = float) = Mat!(dimension, dimension, Type);
+alias Vec(size_t size = 3, Type = float) = Mat!(size, 1, Type);
+alias Mat(size_t dimension = 3, Type = float) = Mat!(dimension, dimension, Type);
 
-struct Mat(uint row_count, uint column_count, Type = float)
+struct Mat(size_t row_count, size_t column_count, Type = float)
 		if (row_count > 0 && column_count > 0) {
 	enum ulong size = row_count * column_count; // #elements, not #bytes!
 	enum bool isVec = (column_count == 1);
@@ -86,32 +86,35 @@ struct Mat(uint row_count, uint column_count, Type = float)
 	}
 
 	static if (isVec)
-		this(uint L, uint R)(Type[L] left, Type[R] right...) if (L + R == size) {
+		this(size_t L, size_t R)(Type[L] left, Type[R] right...) if (L + R == size) {
 			this.vec = left ~ right;
 		}
 
 	unittest {
 		Vec!2 a = Vec!2(1, 2);
 		Vec!3 b = Vec!3(3, 4, 5);
-		Vec!5 c = Vec!5(a, b);
-		assert(c == [1, 2, 3, 4, 5]);
+		Vec!4 c = Vec!4(a, 3, 4);
+		assert(c == [1, 2, 3, 4]);
+		Vec!5 d = Vec!5(a, b);
+		assert(d == [1, 2, 3, 4, 5]);
+
 	}
 
-	void setCol(uint k, Vec!(row_count, Type) col) {
+	void setCol(size_t k, Vec!(row_count, Type) col) {
 		assert(k < row_count);
 		foreach (i; 0 .. row_count) {
 			this.mat[k][i] = col[i];
 		}
 	}
 
-	Vec!(row_count, Type) col(uint index) {
+	Vec!(row_count, Type) col(size_t index) {
 		Vec!(row_count, Type) column;
 		foreach (r; 0 .. row_count)
 			column.vec[r] = this.mat[r][index];
 		return column;
 	}
 
-	Vec!(column_count, Type) row(uint index) {
+	Vec!(column_count, Type) row(size_t index) {
 		return Vec!(column_count, Type)(this.mat[index]);
 	}
 
@@ -329,7 +332,7 @@ struct Mat(uint row_count, uint column_count, Type = float)
 		}
 	}
 
-	template mult(T, uint K) {
+	template mult(T, size_t K) {
 		alias ArithType = ResultType!(Type, "*", T);
 		alias ResultT = Mat!(row_count, K, ArithType);
 
@@ -580,7 +583,7 @@ struct Mat(uint row_count, uint column_count, Type = float)
 
 	static if (isVec) {
 		bool opEquals(RT)(const RT[size] other) const @safe pure nothrow {
-			foreach (uint i; 0 .. size)
+			foreach (size_t i; 0 .. size)
 				if (this.vec[i] != other[i])
 					return false;
 			return true;
