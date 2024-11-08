@@ -51,9 +51,9 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 			foreach (i; 0 .. row_count)
 				foreach (j; 0 .. column_count)
 					static if (isArithmetic)
-						mat[i][j] = (i == j) ? val : 0;
+						vec[i * column_count + j] = (i == j) ? val : 0; // mat[i][j] = (i == j) ? val : 0;
 					else
-						mat[i][j] = (i == j) ? val : Type.init;
+						vec[i * column_count + j] = (i == j) ? val : Type.init; // mat[i][j] = (i == j) ? val : Type.init;
 		}
 	}
 
@@ -70,8 +70,8 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 		assert(v1.vec == [2.0f, 2.0f, 2.0f]);
 		Mat!3 m1 = Mat!3(2.0f);
 		assert(m1.mat == [
-				[2.0f, 0.0f, 0.0f], [0.0f, 2.0f, 0.0f], [0.0f, 0.0f, 2.0f]
-			]);
+			[2.0f, 0.0f, 0.0f], [0.0f, 2.0f, 0.0f], [0.0f, 0.0f, 2.0f]
+		]);
 
 		Vec!3 v2 = Vec!3(1.0f, 2.0f, 3.0f);
 		assert(v2.vec == [1.0f, 2.0f, 3.0f]);
@@ -381,6 +381,11 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 		Vec!3 v1 = Vec!3(1, 2, 3);
 		Vec!2 correct1 = Vec!2(14, 20);
 		assert((m1 ^ v1) == correct1);
+
+		Mat!(2, 3) m3 = Mat!(2, 3)([0, 1, 2], [3, 4, 5]);
+		Mat!(3, 2) m4 = Mat!(3, 2)([0, 1], [2, 3], [4, 5]);
+		Mat!(2, 2) correct = Mat!(2, 2)([10, 13], [28, 40]);
+		assert((m3 ^ m4) == correct);
 	}
 
 	auto opOpAssign(string op, T)(T value) {
@@ -456,7 +461,7 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 	}
 
 	// TODO: re-evaluate "dual-context" deprecation
-	auto map(alias fun)() const
+	auto map(RetT)(RetT delegate(Type) fun) const
 	if (isCallable!fun && __traits(compiles, fun(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!fun) result;
 		foreach (i; 0 .. size)
@@ -470,7 +475,7 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 		}
 
 		Mat!2 m1 = Mat!2(1, 2, 3, 4);
-		auto answer = m1.map!even();
+		auto answer = m1.map(&even);
 		Mat!(2, bool) correct = Mat!(2, bool)(false, true, false, true);
 
 		assert(is(typeof(answer) == Mat!(2, bool)));
