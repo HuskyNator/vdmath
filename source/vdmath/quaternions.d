@@ -51,6 +51,18 @@ struct Quaternion(Type = float) {
 		return QuatType(cos(angle / 2.0), axis * cast(Type) sin(angle / 2.0));
 	}
 
+	unittest {
+		Quat q = Quat.rotation(Vec!3(1, 0, 0), PI_2);
+		Vec!3 x = Vec!3(1, 0, 0);
+		Vec!3 y = Vec!3(0, 1, 0);
+		Vec!3 z = Vec!3(0, 0, 1);
+		import std.stdio;
+
+		assert((q ^ x).almostEquals(x));
+		assert((q ^ y).almostEquals(z));
+		assert((q ^ z).almostEquals(-y));
+	}
+
 	auto toMat(uint n = 3)() const if (n == 3 || n == 4) {
 		Mat!(n, Type) res = Mat!(n, Type)(1);
 		res[0][0] = 1 - 2 * v.y * v.y - 2 * v.z * v.z;
@@ -63,5 +75,21 @@ struct Quaternion(Type = float) {
 		res[2][1] = 2 * v.y * v.z + 2 * r * v.x;
 		res[2][2] = 1 - 2 * v.x * v.x - 2 * v.y * v.y;
 		return res;
+	}
+
+	unittest {
+		Quat q = Quat.rotation(Vec!3(1, 0, 0), PI_2);
+		Mat!3 m = q.toMat!3();
+		Vec!3 x = Vec!3(1, 0, 0);
+		Vec!3 y = Vec!3(0, 1, 0);
+		Vec!3 z = Vec!3(0, 0, 1);
+		import std.stdio;
+
+		assert((m ^ x).almostEquals(x));
+		assert((m ^ y).almostEquals(z));
+		assert((m ^ z).almostEquals(-y));
+
+		writeln(Quat.rotation(Vec!3(1,0,0), -PI_4).toMat!3());
+		writeln(Quat.rotation(Vec!3(1,0,0), PI_4).toMat!3().inverse());
 	}
 }

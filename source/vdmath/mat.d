@@ -11,7 +11,7 @@ alias Mat(size_t dimension = 3, Type = float) = Mat!(dimension, dimension, Type)
 
 struct Mat(size_t row_count, size_t column_count, Type = float)
 		if (row_count > 0 && column_count > 0) {
-	enum ulong size = row_count * column_count; // #elements, not #bytes!
+	enum uint size = row_count * column_count; // #elements, not #bytes!
 	enum bool isVec = (column_count == 1);
 	enum bool isMat = !isVec;
 	enum bool isSquare = (column_count == row_count);
@@ -280,6 +280,19 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 		}
 	}
 
+	template outerProduct(uint L, T) if (isVec) {
+		alias ArithType = ResultType!(Type, "*", T);
+		alias ResultT = Mat!(size, L, ArithType);
+
+		ResultT outerProduct(const Mat!(L, 1, T) right) const {
+			ResultT result;
+			foreach (i; 0 .. size)
+				foreach (j; 0 .. L)
+					result[i][j] = this.vec[i] * right.vec[j];
+			return result;
+		}
+	}
+
 	unittest {
 		Vec!3 v1 = Vec!3(1, 2, 3);
 		Vec!3 v2 = Vec!3(2, 3, 4);
@@ -400,7 +413,23 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 		assert(m1 == correct);
 	}
 
-	T sum(T = float)() const {
+	static if (is(Type == bool)) {
+		bool all() const {
+			foreach (i; 0 .. size)
+				if (!vec[i])
+					return false;
+			return true;
+		}
+
+		bool any() const {
+			foreach (i; 0 .. size)
+				if (vec[i])
+					return true;
+			return false;
+		}
+	}
+
+	T sum(T = ResultType!(Type, "+", Type))() const {
 		T result = 0;
 		static foreach (i; 0 .. size)
 			result += this.vec[i];
@@ -461,8 +490,8 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 	}
 
 	// TODO: re-evaluate "dual-context" deprecation
-	auto map(RetT)(RetT delegate(Type) fun) const
-	if (isCallable!fun && __traits(compiles, fun(Type.init))) {
+	auto map(FunT)(FunT fun) const
+	if (isCallable!FunT && __traits(compiles, fun(Type.init))) {
 		Mat!(row_count, column_count, ReturnType!fun) result;
 		foreach (i; 0 .. size)
 			result.vec[i] = fun(this.vec[i]);
@@ -691,6 +720,15 @@ struct Mat(size_t row_count, size_t column_count, Type = float)
 			assertNotThrown!AssertError(m1.assertAlmostEquals(m2, 1.1f));
 			assertThrown!AssertError(m1.assertAlmostEquals(m2, 1.0f));
 		}
+	}
+
+	int opCmp(R)(const R other) const {
+		// opCmp does not provide operators.
+		static assert(0, "Comparisson overloading not supported; use Mat.cmp instead.");
+	}
+
+	auto cmp(string op, T2)(const Mat!(row_count, column_count, T2) other) const {
+		return opBinary!(op, T2)(other);
 	}
 
 	// TODO: re-evaluate hashes
